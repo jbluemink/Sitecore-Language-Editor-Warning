@@ -6,15 +6,18 @@ With this Sitecore module you get a content editor warning when the wrong langua
 ![Example of Belgian website](https://raw.githubusercontent.com/jbluemink/Sitecore-Language-Editor-Warning/master/ContentEditorWarningBE.PNG)
 
 Download Sitecore Package:
+
 A compiled and packaged version is available on the [Sitecore Marketplace](https://marketplace.sitecore.net/en/Modules/Sitecore_Language_Content_Editor_Warning.aspx)
 
 To Build:
+
 Add Sitecore.Kernel.dll to External folder
 
 Deploy:
 
 - Copy the builded Language.Editor.Warning.dll to the Sitecore bin directory
 - Register the Content Editor Warning. place the Language.Editor.Warning.config in the Sitecore App_Config/include
+
 
 
 With this module you get a content editor warning when the wrong language is selected.
