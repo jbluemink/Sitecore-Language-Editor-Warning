@@ -29,3 +29,5 @@ Each site in Sitecore has optional a default language. define in the &lt;sites&g
 
 On Multilanguage Site’s you can use a custom attribute altLanguage. It's possible to set more than one alternative language by using '|' symbol as a separator, same as for the host.
 &lt;site name="website" language="nl-BE" altLanguage="fr-BE|en" ...
+
+Read more on [Sitecore Stockpick](http://sitecore.stockpick.nl/nederlands/editen-in-de-juiste-taal.aspx) or the Dutch artikel [Sitecore editen in de juiste taal](http://sitecore.stockpick.nl/nederlands/editen-in-de-juiste-taal.aspx)
