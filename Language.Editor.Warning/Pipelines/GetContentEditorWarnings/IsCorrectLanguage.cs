@@ -42,6 +42,19 @@ namespace Language.Editor.Warning.Pipelines.GetContentEditorWarnings
             GetWebsite(item, args);
         }
 
+        public static Item GetLanguageVersion(Item item, string languageName)
+        {
+            var language = global::Sitecore.Globalization.Language.Parse(languageName);
+            if (language != null)
+            {
+                var languageSpecificItem = item.Database.GetItem(item.ID, language);
+                if (languageSpecificItem != null && languageSpecificItem.Versions.Count > 0)
+                {
+                    return languageSpecificItem;
+                }
+            }
+            return null;
+        }
 
         private static void GetWebsite(Item item, GetContentEditorWarningsArgs args)
         {
@@ -49,7 +62,8 @@ namespace Language.Editor.Warning.Pipelines.GetContentEditorWarnings
             var itemlanguage = item.Language.ToString();
             foreach (var site in global::Sitecore.Configuration.Settings.Sites)
             {
-                if (path.StartsWith(site.RootPath) && site.Name != "shell" && site.Name != "modules_shell" && site.Name != "modules_website" && site.RootPath.Trim() != string.Empty)
+                if (path.StartsWith(site.RootPath) && site.Name != "shell" && site.Name != "modules_shell" &&
+                    site.Name != "modules_website" && site.RootPath.Trim() != string.Empty)
                 {
                     var language = site.Language;
                     if (string.IsNullOrEmpty(language))
@@ -57,38 +71,55 @@ namespace Language.Editor.Warning.Pipelines.GetContentEditorWarnings
                         //language attribuut is optioneel, is die er niet gebruik dan de default language.
                         language = Sitecore.Configuration.Settings.DefaultLanguage;
                     }
+                    string altLanguages = site.Properties.Get("altLanguage");
+                    altLanguages = "," + altLanguages.Trim().Replace(" ", "").Replace("|", ",") + ",";
+                    //altLanguage is optioneel en mag comma of | seperated zijn.
                     if (System.String.Compare(itemlanguage, language, System.StringComparison.OrdinalIgnoreCase) != 0)
                     {
-                        string altLanguages = site.Properties.Get("altLanguage");  //altLanguage is optioneel en mag comma of | seperated zijn.
-                        
                         if (string.IsNullOrEmpty(altLanguages))
                         {
-                            AddWarning(item, args, language);
+                            AddWarning(item, args, language, site.Name);
+                            return;
                         }
                         else
                         {
-                            altLanguages = "," + altLanguages.Trim().Replace(" ", "").Replace("|", ",") + ",";
                             if (!altLanguages.Contains("," + itemlanguage + ","))
                             {
-                                AddWarning(item, args, language + altLanguages);
+                                AddWarning(item, args, language + altLanguages, site.Name);
+                                return;
                             }
                         }
+                    }
+
+                    var languageList = (language + altLanguages).Split(',');
+                    var versionnotfound = string.Empty;
+                    foreach (var lan in languageList)
+                    {
+                        if (lan.Trim() != string.Empty)
+                        {
+                            if (GetLanguageVersion(item, lan) == null)
+                            {
+                                if (versionnotfound != string.Empty)
+                                {
+                                    versionnotfound += ",";
+                                }
+                                versionnotfound += lan;
+                            }
+                        }
+                    }
+                    if (versionnotfound != string.Empty)
+                    {
+                        AddTranslateWarning(item, args, versionnotfound, site.Name);
                     }
                 }
             }
         }
- 
-        /// <summary>
-        ///
-        /// </summary>
-        /// <param name="item"></param>
-        /// <param name="args"></param>
-        /// <param name="language">a comma separated list</param>
-        public static void AddWarning(Item item, GetContentEditorWarningsArgs args, string language)
+    
+        public static void AddWarning(Item item, GetContentEditorWarningsArgs args, string language, string sitename)
         {
             GetContentEditorWarningsArgs.ContentEditorWarning warning = args.Add();
- 
-            warning.Title = "You are not in the default language of the current website";
+
+            warning.Title = "You are not in the default language of the current site: " + sitename;
             warning.Text = "Switch to the correct language";
             var languageList = language.Split(',');
             foreach (var languageitem in languageList)
@@ -101,6 +132,22 @@ namespace Language.Editor.Warning.Pipelines.GetContentEditorWarnings
                 }
             }
             warning.IsExclusive = true;
+        }
+
+        private static void AddTranslateWarning(Item item, GetContentEditorWarningsArgs args, string language, string sitename)
+        {
+            GetContentEditorWarningsArgs.ContentEditorWarning warning = args.Add();
+            warning.Title = "This item is not translated for the site: " + sitename;
+            warning.Text = "Switch to the not translated language and create a version";
+            var languageList = language.Split(',');
+
+            foreach (var languageitem in languageList)
+            {
+                warning.AddOption(string.Format("Switch to {0}", languageitem), string.Format(CultureInfo.InvariantCulture, "item:load(id={0},language={1})", item.ID, languageitem));
+            }
+
+            warning.IsExclusive = false;
+
         }
     }
 }
