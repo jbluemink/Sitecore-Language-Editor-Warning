@@ -72,7 +72,11 @@ namespace Language.Editor.Warning.Pipelines.GetContentEditorWarnings
                         language = Sitecore.Configuration.Settings.DefaultLanguage;
                     }
                     string altLanguages = site.Properties.Get("altLanguage");
-                    altLanguages = "," + altLanguages.Trim().Replace(" ", "").Replace("|", ",") + ",";
+                    if (!string.IsNullOrEmpty(altLanguages))
+                    {
+                        altLanguages = "," + altLanguages.Trim().Replace(" ", "").Replace("|", ",") + ",";
+                    }
+
                     //altLanguage is optioneel en mag comma of | seperated zijn.
                     if (System.String.Compare(itemlanguage, language, System.StringComparison.OrdinalIgnoreCase) != 0)
                     {
