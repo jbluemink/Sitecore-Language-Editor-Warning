@@ -3,10 +3,14 @@ Sitecore-Language-Editor-Warning
 
 With this Sitecore module you get a content editor warning when the wrong language is selected for the current website. An also a user friendly button to switch the language. And there is also a warning if there is a missing version of one or more specified languages for the specific site.
 
+On template and layout, and system and other no site items there is a language switch, save time by switching with one click the language, to the default language English.
 
 ![Example of Belgian website](https://raw.githubusercontent.com/jbluemink/Sitecore-Language-Editor-Warning/master/ContentEditorWarningBE.PNG)
 
 ![Example of not translateted version found](https://raw.githubusercontent.com/jbluemink/Sitecore-Language-Editor-Warning/master/not-translated-warning.png)
+
+![Example of version not found with language switch](https://raw.githubusercontent.com/jbluemink/Sitecore-Language-Editor-Warning/master/no-version-switch-language.PNG)
+
 ##Download Sitecore Package:
 A compiled and packaged version is available on the [Sitecore Marketplace](https://marketplace.sitecore.net/en/Modules/Sitecore_Language_Content_Editor_Warning.aspx)
 

@@ -1,6 +1,13 @@
-﻿using System.Globalization;
+﻿using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using Sitecore.Collections;
+using Sitecore.Data;
 using Sitecore.Data.Items;
+using Sitecore.Data.Managers;
+using Sitecore.Globalization;
 using Sitecore.Pipelines.GetContentEditorWarnings;
+
 
 namespace Language.Editor.Warning.Pipelines.GetContentEditorWarnings
 {
@@ -60,11 +67,13 @@ namespace Language.Editor.Warning.Pipelines.GetContentEditorWarnings
         {
             var path = item.Paths.FullPath;
             var itemlanguage = item.Language.ToString();
+            var nohit = true;
             foreach (var site in global::Sitecore.Configuration.Settings.Sites)
             {
                 if (path.StartsWith(site.RootPath) && site.Name != "shell" && site.Name != "modules_shell" &&
                     site.Name != "modules_website" && site.RootPath.Trim() != string.Empty)
                 {
+                    nohit = false;
                     var language = site.Language;
                     if (string.IsNullOrEmpty(language))
                     {
@@ -117,6 +126,11 @@ namespace Language.Editor.Warning.Pipelines.GetContentEditorWarnings
                     }
                 }
             }
+            if (nohit)
+            {
+                //item is not in a website, so a system/template/layout item. maby it is nice to see the "en" version
+                ProcessNonSiteItem(item,args);
+            }
         }
     
         public static void AddWarning(Item item, GetContentEditorWarningsArgs args, string language, string sitename)
@@ -152,6 +166,84 @@ namespace Language.Editor.Warning.Pipelines.GetContentEditorWarnings
 
             warning.IsExclusive = false;
 
+        }
+
+        private static void ProcessNonSiteItem(Item item, GetContentEditorWarningsArgs args)
+        {
+
+            Version[] versionNumbers = item.Versions.GetVersionNumbers(false);
+            if (versionNumbers != null && versionNumbers.Length > 0)
+                return;
+
+            LanguageCollection languages = LanguageManager.GetLanguages(Sitecore.Context.ContentDatabase);
+            int lancount = 0;
+            var languageList = new List<string>();
+            foreach (Sitecore.Globalization.Language language in languages)
+            {
+                if (HasLanguage(item, language))
+                {
+                    lancount++;
+                    languageList.Add(language.ToString());
+                    if (lancount > 3)
+                    {
+                        //limiet to 4, but add en
+                        if (!languageList.Contains("en"))
+                        {
+                            var defaultlang = Sitecore.Globalization.Language.Parse("en");
+                            if (defaultlang != null && HasLanguage(item, defaultlang))
+                            {
+                                languageList.Add(defaultlang.ToString());
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+            if (languageList.Any())
+            {
+                GetContentEditorWarningsArgs.ContentEditorWarning contentEditorWarning = args.Add();
+                contentEditorWarning.Title =
+                    string.Format(Translate.Text("The current item does not have a version in \"{0}\"."),
+                        (object)item.Language.GetDisplayName());
+                if (item.Access.CanWriteLanguage() && item.Access.CanWrite())
+                {
+                    contentEditorWarning.Text =
+                        Translate.Text("To create a version, click Add a New Version or Switch language.");
+                    contentEditorWarning.AddOption(Translate.Text("Add a new version."), "item:addversion");
+                    foreach (var languageitem in languageList)
+                    {
+                        contentEditorWarning.AddOption(string.Format("Switch to {0}", languageitem), string.Format(CultureInfo.InvariantCulture, "item:load(id={0},language={1})", item.ID, languageitem));
+                    }
+                    contentEditorWarning.IsExclusive = true;
+                }
+                else
+                    contentEditorWarning.IsExclusive = false;
+                contentEditorWarning.HideFields = true;
+                contentEditorWarning.Key = HasNoVersions.Key;
+            }
+            else
+            {
+                GetContentEditorWarningsArgs.ContentEditorWarning contentEditorWarning = args.Add();
+                contentEditorWarning.Title =
+                    string.Format(Translate.Text("The current item does not have a version in \"{0}\"."),
+                        (object) item.Language.GetDisplayName());
+                if (item.Access.CanWriteLanguage() && item.Access.CanWrite())
+                {
+                    contentEditorWarning.Text =
+                        Translate.Text("To create a version, click Add a New Version or click Add on the Versions tab.");
+                    contentEditorWarning.AddOption(Translate.Text("Add a new version."), "item:addversion");
+                    contentEditorWarning.IsExclusive = true;
+                }
+                else
+                    contentEditorWarning.IsExclusive = false;
+                contentEditorWarning.HideFields = true;
+                contentEditorWarning.Key = HasNoVersions.Key;
+            }
+        }
+
+        public static bool HasLanguage(Item item, Sitecore.Globalization.Language language)
+        {
+            return ItemManager.GetVersions(item, language).Count > 0;
         }
     }
 }
