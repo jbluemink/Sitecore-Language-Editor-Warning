@@ -1,12 +1,14 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using Sitecore.Collections;
-using Sitecore.Data;
 using Sitecore.Data.Items;
 using Sitecore.Data.Managers;
 using Sitecore.Globalization;
 using Sitecore.Pipelines.GetContentEditorWarnings;
+using Version = Sitecore.Data.Version;
+
 
 
 namespace Language.Editor.Warning.Pipelines.GetContentEditorWarnings
@@ -106,11 +108,13 @@ namespace Language.Editor.Warning.Pipelines.GetContentEditorWarnings
 
                     var languageList = (language + altLanguages).Split(',');
                     var versionnotfound = string.Empty;
+                    var fallbackfound = string.Empty;
                     foreach (var lan in languageList)
                     {
                         if (lan.Trim() != string.Empty)
                         {
-                            if (GetLanguageVersion(item, lan) == null)
+                            var lanItem = GetLanguageVersion(item, lan);
+                            if (lanItem == null)
                             {
                                 if (versionnotfound != string.Empty)
                                 {
@@ -118,11 +122,19 @@ namespace Language.Editor.Warning.Pipelines.GetContentEditorWarnings
                                 }
                                 versionnotfound += lan;
                             }
+                            else if (lanItem.Language != lanItem.OriginalLanguage)
+                            {
+                                if (fallbackfound != string.Empty)
+                                {
+                                    fallbackfound += ",";
+                                }
+                                fallbackfound += lan + "#" + lanItem.OriginalLanguage.Name;
+                            }
                         }
                     }
-                    if (versionnotfound != string.Empty)
+                    if (versionnotfound != string.Empty || fallbackfound != string.Empty)
                     {
-                        AddTranslateWarning(item, args, versionnotfound, site.Name);
+                        AddTranslateWarning(item, args, versionnotfound, fallbackfound, site.Name);
                     }
                 }
             }
@@ -152,18 +164,33 @@ namespace Language.Editor.Warning.Pipelines.GetContentEditorWarnings
             warning.IsExclusive = true;
         }
 
-        private static void AddTranslateWarning(Item item, GetContentEditorWarningsArgs args, string language, string sitename)
+        private static void AddTranslateWarning(Item item, GetContentEditorWarningsArgs args, string language, string fallback, string sitename)
         {
             GetContentEditorWarningsArgs.ContentEditorWarning warning = args.Add();
             warning.Title = "This item is not translated for the site: " + sitename;
             warning.Text = "Switch to the not translated language and create a version";
-            var languageList = language.Split(',');
-
-            foreach (var languageitem in languageList)
+            if (language != string.Empty)
             {
-                warning.AddOption(string.Format("Switch to {0}", languageitem), string.Format(CultureInfo.InvariantCulture, "item:load(id={0},language={1})", item.ID, languageitem));
-            }
+                var languageList = language.Split(',');
 
+                foreach (var languageitem in languageList)
+                {
+                    warning.AddOption(string.Format("Switch to {0}", languageitem), string.Format(CultureInfo.InvariantCulture, "item:load(id={0},language={1})", item.ID, languageitem));
+                }
+            }
+            if (fallback != string.Empty)
+            {
+                var languageList = fallback.Split(',');
+
+                foreach (var languageitem in languageList)
+                {
+                    string[] languageset = languageitem.Split('#');
+                    if (languageset.Length > 1)
+                    {
+                        warning.AddOption(string.Format("Switch to {0} (now uses {1} language fallback)", languageset[0], languageset[1]), string.Format(CultureInfo.InvariantCulture, "item:load(id={0},language={1})", item.ID, languageset[0]));
+                    }
+                }
+            }
             warning.IsExclusive = false;
 
         }
