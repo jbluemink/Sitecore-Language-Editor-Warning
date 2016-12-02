@@ -24,6 +24,9 @@ Add Sitecore.Kernel.dll to External folder
 - Copy the builded Language.Editor.Warning.dll to the Sitecore bin directory
 - Register the Content Editor Warning. place the Language.Editor.Warning.config in the Sitecore App_Config/include
 
+##Compatible
+Version 1.2 is tested on Sitecore 6, 7 and 8
+Version 8.1 is tested on Sitecore 8.1 and 8.2
 
 ##Explanation
 With this module you get a content editor warning when the wrong language is selected.
