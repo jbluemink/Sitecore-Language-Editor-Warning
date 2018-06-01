@@ -7,8 +7,8 @@
     <ProjectGuid>{72804327-185A-4171-9209-39E8E77D89F8}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Stockpick.Language.Editor.Warning</RootNamespace>
-    <AssemblyName>Stockpick.Language.Editor.Warning</AssemblyName>
+    <RootNamespace>Stockpick.LanguageWarning</RootNamespace>
+    <AssemblyName>Stockpick.LanguageWarning</AssemblyName>
     <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />

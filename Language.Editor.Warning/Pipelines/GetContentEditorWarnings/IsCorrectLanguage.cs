@@ -6,11 +6,12 @@ using Sitecore.Collections;
 using Sitecore.Data.Items;
 using Sitecore.Data.Managers;
 using Sitecore.Globalization;
+using Language = Sitecore.Globalization.Language;
 using Sitecore.Pipelines.GetContentEditorWarnings;
 using Sitecore.Web;
 using Version = Sitecore.Data.Version;
 
-namespace Stockpick.Language.Editor.Warning.Pipelines.GetContentEditorWarnings
+namespace Stockpick.LanguageWarning.Pipelines.GetContentEditorWarnings
 {
     /*
 
@@ -37,7 +38,6 @@ namespace Stockpick.Language.Editor.Warning.Pipelines.GetContentEditorWarnings
     /// </summary>
     class IsCorrectLanguage
     {
-
         public void Process(GetContentEditorWarningsArgs args)
         {
             Item item = args.Item;
@@ -49,9 +49,8 @@ namespace Stockpick.Language.Editor.Warning.Pipelines.GetContentEditorWarnings
             Check(item, args);
         }
 
-        public static Item GetLanguageVersion(Item item, string languageName)
+        public static Item GetLanguageVersionIfExist(Item item, Sitecore.Globalization.Language language)
         {
-            var language = Sitecore.Globalization.Language.Parse(languageName);
             if (language != null)
             {
                 var languageSpecificItem = item.Database.GetItem(item.ID, language);
@@ -69,7 +68,7 @@ namespace Stockpick.Language.Editor.Warning.Pipelines.GetContentEditorWarnings
                 .Where(s => !string.IsNullOrWhiteSpace(s.RootPath) && item.Paths.Path.StartsWith(s.RootPath, StringComparison.OrdinalIgnoreCase))
                 .OrderByDescending(s => s.RootPath.Length)
                 .FirstOrDefault();
-            // for this works beter than Sitecore.Links.LinkManager.ResolveTargetSite
+            // for this, this works beter than Sitecore.Links.LinkManager.ResolveTargetSite
         }
 
         private static void Check(Item item, GetContentEditorWarningsArgs args)
@@ -77,178 +76,154 @@ namespace Stockpick.Language.Editor.Warning.Pipelines.GetContentEditorWarnings
             var path = item.Paths.FullPath;
             if (path.StartsWith("/sitecore/content/"))
             {
-                var itemlanguage = item.Language.ToString();
+                var itemlanguage = item.Language;
                 var site = GetSiteInfo(item);
-
-                var defaultLanguage = site.Language;
-                if (string.IsNullOrEmpty(defaultLanguage))
+                if (site.Name == "shell")
                 {
-                    //language attribuut is optioneel, if not present use default language.
-                    defaultLanguage = Sitecore.Configuration.Settings.DefaultLanguage;
+                    //ignore no content site found for this item.
+                    return;
                 }
-                var altLanguages = GetAltLanguagesFromConfig(site);
-                if (string.IsNullOrEmpty(altLanguages))
+                var altlanguages = GetAltLanguagesFromConfig(site);
+                var languages = new List<Language>();
+                if (!altlanguages.Any())
                 {
-                    altLanguages = GetAltLanguagesFromRootItem(site, item);
-                    if (!string.IsNullOrEmpty(altLanguages))
-                    {
-                        //language configuration from item,  check if or default language is also there
-                        var searchtoken = "," + defaultLanguage + ",";
-                        if (altLanguages.ToLower().Contains(searchtoken))
-                        {
-                            //remove default from altLanguages, because it is the default.
-                            altLanguages = altLanguages.Replace(searchtoken, ",");
-                        }
-                        else
-                        {
-                            //The first language is the default.
-                            defaultLanguage = altLanguages.TrimStart(',').Split(',')[0];
-                            altLanguages = altLanguages.Replace("," + defaultLanguage + ",", ",");
-                        }
-                    }
-                }
-
-
-                if (System.String.Compare(itemlanguage, defaultLanguage, System.StringComparison.OrdinalIgnoreCase) != 0)
+                    //no altlanguage sitconfig found try site root item.
+                    languages = GetLanguagesFromRootItem(site, item);
+                } 
+                 
+                if (!languages.Any())
                 {
-                    if (string.IsNullOrEmpty(altLanguages))
+                    //no language configured, use the default language
+                    //Or altlanguage in config add the default laguage to the list
+                    var defaultLanguage = site.Language;
+                    if (string.IsNullOrEmpty(defaultLanguage))
                     {
-                        AddWarning(item, args, defaultLanguage, site.Name);
-                        return;
+                        //language attribute is optional, if not present use default language.
+                        defaultLanguage = Sitecore.Configuration.Settings.DefaultLanguage;
                     }
-                    else
-                    {
-                        if (!altLanguages.ToLower().Contains("," + itemlanguage.ToLower() + ","))
-                        {
-                            AddWarning(item, args, defaultLanguage + altLanguages, site.Name);
-                            return;
-                        }
-                    }
+                    languages.Add(LanguageManager.GetLanguage(defaultLanguage));
                 }
-                CheckTranslations(item, args, defaultLanguage, altLanguages, site);
+                if (altlanguages.Any())
+                {
+                    languages.AddRange(altlanguages);
+                }
+                if (!languages.Contains(itemlanguage))
+                {
+                    AddWarning(item, args, languages, site.Name);
+                    return;
+                }
+                CheckTranslations(item, args, languages, site);
             }
             else
             {
-                // item is not in content, not a website, so a system/ template / layout item.maby it is nice to see the "en" version
+                // item is not in content, not a website, so a system/ template / layout item. maybe it is nice to see the "en" version
                 ProcessNonSiteItem(item, args);
             }
         }
 
-        private static void CheckTranslations(Item item, GetContentEditorWarningsArgs args, string language,
-            string altLanguages, SiteInfo site)
+
+        private static IList<Language> GetAltLanguagesFromConfig(SiteInfo site)
+        {
+            //altLanguage is optional in site config may comma or | seperated. hostname also use the | mask.
+            string altLanguages = site.Properties.Get("altLanguage");
+            var languages = new List<Language>();
+            if (!string.IsNullOrEmpty(altLanguages))
+            {
+                altLanguages = altLanguages.Trim().Replace(" ", "").Replace("|", ",");
+                foreach(var language in altLanguages.Split(','))
+                {
+                    var sitLanguage = Sitecore.Globalization.Language.Parse(language);
+                    if (sitLanguage != null)
+                    {
+                        languages.Add(sitLanguage);
+                    }
+                }
+
+            }
+
+            return languages;
+        }
+
+     
+        //check or translation exsist and also check the Item Fallback version.
+        private static void CheckTranslations(Item item, GetContentEditorWarningsArgs args, IList<Sitecore.Globalization.Language> languages, SiteInfo site)
         {
             //if no warning, maybe show somethings about not Translated Warning and fallback
-            var languageList = (language + altLanguages).Split(',');
-            var versionnotfound = string.Empty;
-            var fallbackfound = string.Empty;
-            foreach (var lan in languageList)
+            var versionnotfound = new List<Sitecore.Globalization.Language>();
+            var fallbackfound = new List<Item>();
+            foreach (var language in languages)
             {
-                if (lan.Trim() != string.Empty)
+                var lanItem = GetLanguageVersionIfExist(item, language);
+                if (lanItem == null)
                 {
-                    var lanItem = GetLanguageVersion(item, lan);
-                    if (lanItem == null)
-                    {
-                        if (versionnotfound != string.Empty)
-                        {
-                            versionnotfound += ",";
-                        }
-
-                        versionnotfound += lan;
-                    }
-                    else if (lanItem.Language != lanItem.OriginalLanguage)
-                    {
-                        if (fallbackfound != string.Empty)
-                        {
-                            fallbackfound += ",";
-                        }
-
-                        fallbackfound += lan + "#" + lanItem.OriginalLanguage.Name;
-                    }
+                    versionnotfound.Add(language);
+                }
+                else if (lanItem.Language != lanItem.OriginalLanguage)
+                {
+                    fallbackfound.Add(lanItem);
                 }
             }
 
-            if (versionnotfound != string.Empty || fallbackfound != string.Empty)
+            if (versionnotfound.Any() || fallbackfound.Any())
             {
                 AddTranslateWarning(item, args, versionnotfound, fallbackfound, site.Name);
             }
         }
 
-        private static string GetAltLanguagesFromConfig(SiteInfo site)
+        private static List<Language> GetLanguagesFromRootItem(SiteInfo site, Item item)
         {
-            //altLanguage is optional in site config may comma or | seperated. hostname also use the | mask.
-            string altLanguages = site.Properties.Get("altLanguage");
-            if (!string.IsNullOrEmpty(altLanguages))
-            {
-                altLanguages = "," + altLanguages.Trim().Replace(" ", "").Replace("|", ",") + ",";
-            }
-
-            return altLanguages;
-        }
-
-        private static string GetAltLanguagesFromRootItem(SiteInfo site, Item item)
-        {
-            //altlanguages may also in a field call "Languages" in the site root (not the home item, change this part if you want to use the home item or another item)
+            //languages may also in a field call "Languages" in the site root (not the home item, change this part if you want to use the home item or another item)
             var siteRootItem = item.Database.GetItem(site.RootPath);
-            string altLanguages = string.Empty;
+            var languageList = new List<Sitecore.Globalization.Language>();
             if (siteRootItem != null)
             {
                 Sitecore.Data.Fields.MultilistField languages = siteRootItem.Fields["Languages"];
                 if (languages != null)
                 {
-                    var languageList = languages.GetItems();
-                    foreach (var language in languageList)
+                    var languageItemList = languages.GetItems();
+                    foreach (var languageItem in languageItemList)
                     {
-                        altLanguages += "," + language.Name + ",";
+                        languageList.Add(LanguageManager.GetLanguage(languageItem.Name));
                     }
                 }
             }
-            return altLanguages;
+            return languageList;
         }
 
-        public static void AddWarning(Item item, GetContentEditorWarningsArgs args, string language, string sitename)
+        public static void AddWarning(Item item, GetContentEditorWarningsArgs args, IList<Language> languages, string sitename)
         {
             GetContentEditorWarningsArgs.ContentEditorWarning warning = args.Add();
 
-            warning.Title = "You are not in the default language of the current site: " + sitename;
+            warning.Title = "You are not in the language of the current site: " + sitename;
             warning.Text = "Switch to the correct language";
-            var languageList = language.Split(',');
-            foreach (var languageitem in languageList)
+            foreach (var language in languages)
             {
-                if (!string.IsNullOrWhiteSpace(languageitem))
+                if (language != null)
                 {
-                    warning.AddOption(string.Format("Switch to {0}", languageitem),
-                        string.Format(CultureInfo.InvariantCulture, "item:load(id={0},language={1})", item.ID,
-                            languageitem));
+                    warning.AddOption(string.Format("Switch to {0}", language.GetDisplayName()),
+                            string.Format(CultureInfo.InvariantCulture, "item:load(id={0},language={1})", item.ID,
+                                language.Name));
                 }
             }
             warning.IsExclusive = true;
         }
 
-        private static void AddTranslateWarning(Item item, GetContentEditorWarningsArgs args, string language, string fallback, string sitename)
+        private static void AddTranslateWarning(Item item, GetContentEditorWarningsArgs args, IList<Sitecore.Globalization.Language> notranslation, IList<Item> fallback, string sitename)
         {
             GetContentEditorWarningsArgs.ContentEditorWarning warning = args.Add();
             warning.Title = "This item is not translated for the site: " + sitename;
             warning.Text = "Switch to the not translated language and create a version";
-            if (language != string.Empty)
-            {
-                var languageList = language.Split(',');
 
-                foreach (var languageitem in languageList)
-                {
-                    warning.AddOption(string.Format("Switch to {0}", languageitem), string.Format(CultureInfo.InvariantCulture, "item:load(id={0},language={1})", item.ID, languageitem));
-                }
+            foreach (var language in notranslation)
+            {
+                warning.AddOption(string.Format("Switch to {0}", language.GetDisplayName()), string.Format(CultureInfo.InvariantCulture, "item:load(id={0},language={1})", item.ID, language.Name));
             }
-            if (fallback != string.Empty)
-            {
-                var languageList = fallback.Split(',');
 
-                foreach (var languageitem in languageList)
+            if (fallback.Any())
+            {
+                foreach (var languageitem in fallback)
                 {
-                    string[] languageset = languageitem.Split('#');
-                    if (languageset.Length > 1)
-                    {
-                        warning.AddOption(string.Format("Switch to {0} (now uses {1} language fallback)", languageset[0], languageset[1]), string.Format(CultureInfo.InvariantCulture, "item:load(id={0},language={1})", item.ID, languageset[0]));
-                    }
+                    warning.AddOption(string.Format("Switch to {0} (now uses {1} language fallback)", languageitem.Language.GetDisplayName(), languageitem.OriginalLanguage.GetDisplayName()), string.Format(CultureInfo.InvariantCulture, "item:load(id={0},language={1})", item.ID, languageitem.Language.Name));
                 }
             }
             warning.IsExclusive = false;
@@ -265,7 +240,7 @@ namespace Stockpick.Language.Editor.Warning.Pipelines.GetContentEditorWarnings
             LanguageCollection languages = LanguageManager.GetLanguages(Sitecore.Context.ContentDatabase);
             int lancount = 0;
             var languageList = new List<string>();
-            foreach (Sitecore.Globalization.Language language in languages)
+            foreach (Language language in languages)
             {
                 if (HasLanguage(item, language))
                 {

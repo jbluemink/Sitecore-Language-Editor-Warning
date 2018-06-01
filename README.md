@@ -18,15 +18,22 @@ A compiled and packaged version is available on the [Sitecore Marketplace](https
 And the latest build is [GitHub](https://raw.githubusercontent.com/jbluemink/Sitecore-Language-Editor-Warning/master/Package/Language Content Editor Warning-1.2.zip)
 
 ##To Build:
-Add Sitecore.Kernel.dll to External folder
+-
 
 ##Deploy:
-- Copy the builded Language.Editor.Warning.dll to the Sitecore bin directory
+- Copy the builded Stockpick.LanguageWarning.dll to the Sitecore bin directory
 - Register the Content Editor Warning. place the Language.Editor.Warning.config in the Sitecore App_Config/include
 
 ##Compatible
 Version 1.2 is tested on Sitecore 6, 7 and 8
 Version 8.1 is tested on Sitecore 8.1 and 8.2
+Version 9.0 is tested on Sitecore 9
+
+## SXA
+Compatible with Sitecore Experience Accelerator
+
+## JSS
+Compatible with Sitecore JavaScript Services
 
 ##Explanation
 With this module you get a content editor warning when the wrong language is selected.
@@ -44,6 +51,7 @@ On Multilanguage Site’s you can use a custom attribute altLanguage. It's possibl
 
 When the altLanguage is used the there is also a check on missing versions.
 
-
+For Version 9+
+Other option insteed of define the languages in the .config, create a field call "Languages" in the site root Item, change the code if you want to use the Home item or another one.
 
 Read more on [Sitecore Stockpick](http://sitecore.stockpick.nl/) or the Dutch artikel [Sitecore editen in de juiste taal](http://sitecore.stockpick.nl/nederlands/editen-in-de-juiste-taal.aspx)
