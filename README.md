@@ -15,7 +15,7 @@ On template, layout, system and other non site items there is a language switch 
 
 ## Download Sitecore Package:
 A compiled and packaged version is available on the [Sitecore Marketplace](https://marketplace.sitecore.net/en/Modules/Sitecore_Language_Content_Editor_Warning.aspx)
-And the latest build is [GitHub](https://raw.githubusercontent.com/jbluemink/Sitecore-Language-Editor-Warning/master/Package/Language Content Editor Warning-1.2.zip)
+And the latest build is [GitHub](https://raw.githubusercontent.com/jbluemink/Sitecore-Language-Editor-Warning/master/Package/Language Content Editor Warning-9.zip)
 
 
 ## Deploy:
@@ -23,9 +23,9 @@ And the latest build is [GitHub](https://raw.githubusercontent.com/jbluemink/Sit
 - Register the Content Editor Warning. place the Language.Editor.Warning.config in the Sitecore App_Config/include
 
 ## Compatible
-Version 1.2 is tested on Sitecore 6, 7 and 8
-Version 8.1 is tested on Sitecore 8.1 and 8.2
-Version 9.0 is tested on Sitecore 9, should work on Sitecore 8
+- Version 1.2 is tested on Sitecore 6, 7 and 8
+- Version 8.1 is tested on Sitecore 8.1 and 8.2
+- Version 9.0 is tested on Sitecore 9, should work on Sitecore 8
 
 ## SXA
 Compatible with Sitecore Experience Accelerator
@@ -52,9 +52,9 @@ When the altLanguage is used the there is also a check on missing versions.
 For Version 9+
 Other option insteed of define the languages in the .config, create a field call "Languages" in the site root Item, change the code if you want to use the Home item or another one.
 
-Read more on [Sitecore Stockpick](http://sitecore.stockpick.nl/) or the Dutch artikel [Sitecore editen in de juiste taal](http://sitecore.stockpick.nl/nederlands/editen-in-de-juiste-taal.aspx)
+Read more on [Sitecore Stockpick](http://sitecore.stockpick.nl/) or blog [Language Content Editor Warning version 9](http://sitecore.stockpick.nl/english/language-warning-version-9/)
 
 ## Uninstall
 Delete:
-/App_Config/Include/Language.Editor.Warning.config
-/bin/Stockpick.LanguageWarning.dll
+- /App_Config/Include/Language.Editor.Warning.config
+- /bin/Stockpick.LanguageWarning.dll
