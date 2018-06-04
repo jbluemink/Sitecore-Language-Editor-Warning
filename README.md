@@ -15,7 +15,7 @@ On template, layout, system and other non site items there is a language switch 
 
 ## Download Sitecore Package:
 A compiled and packaged version is available on the [Sitecore Marketplace](https://marketplace.sitecore.net/en/Modules/Sitecore_Language_Content_Editor_Warning.aspx)
-And the latest build is [GitHub](https://raw.githubusercontent.com/jbluemink/Sitecore-Language-Editor-Warning/master/Package/Language Content Editor Warning-9.zip)
+And the latest build is [GitHub](https://github.com/jbluemink/Sitecore-Language-Editor-Warning/raw/master/Package/Language%20Content%20Editor%20Warning-9.zip)
 
 
 ## Deploy:
