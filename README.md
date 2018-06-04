@@ -53,3 +53,8 @@ For Version 9+
 Other option insteed of define the languages in the .config, create a field call "Languages" in the site root Item, change the code if you want to use the Home item or another one.
 
 Read more on [Sitecore Stockpick](http://sitecore.stockpick.nl/) or the Dutch artikel [Sitecore editen in de juiste taal](http://sitecore.stockpick.nl/nederlands/editen-in-de-juiste-taal.aspx)
+
+## Uninstall
+Delete:
+/App_Config/Include/Language.Editor.Warning.config
+/bin/Stockpick.LanguageWarning.dll
